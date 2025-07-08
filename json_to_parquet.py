@@ -4,10 +4,40 @@ import bigjson
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+def make_schema_nullable(schema):
+    """
+    Recursively sets all fields in a PyArrow schema to nullable=True.
+    This handles nested structs and lists.
+    """
+    new_fields = []
+    for field in schema:
+        if pa.types.is_struct(field.type):
+            # If it's a struct, recursively process its nested schema
+            new_struct_type = pa.struct(make_schema_nullable(field.type))
+            new_fields.append(pa.field(field.name, new_struct_type, nullable=True))
+        elif pa.types.is_list(field.type):
+            # If it's a list, process its value type
+            # The list itself can be nullable, and its elements can be nullable
+            new_value_type = field.type.value_type
+            if pa.types.is_struct(new_value_type):
+                new_list_value_type = pa.struct(make_schema_nullable(new_value_type))
+            else:
+                new_list_value_type = new_value_type
+            
+            new_list_type = pa.list_(new_list_value_type)
+            new_fields.append(pa.field(field.name, new_list_type, nullable=True))
+        else:
+            # For all other types, just set nullable=True
+            new_fields.append(pa.field(field.name, field.type, nullable=True))
+    
+    return pa.schema(new_fields)
+
+
 def json_to_parquet(json_file_path, parquet_file_path, batch_size=1000):
     """
     Converts a JSON file to Parquet format using bigjson for reading
-    and PyArrow for writing, processing in batches.
+    and PyArrow for writing, processing in batches. Infers schema dynamically
+    and then makes all fields nullable.
 
     Args:
         json_file_path (str): The path to the input JSON file.
@@ -15,7 +45,7 @@ def json_to_parquet(json_file_path, parquet_file_path, batch_size=1000):
         batch_size (int): The number of records to process in each batch.
     """
     writer = None
-    schema = None
+    inferred_and_nullable_schema = None # Este será el esquema modificado
     current_batch = []
     records_processed = 0
 
@@ -23,68 +53,70 @@ def json_to_parquet(json_file_path, parquet_file_path, batch_size=1000):
         with open(json_file_path, 'rb') as f: # bigjson expects a binary file handle
             json_data = bigjson.load(f)
 
-            # Assuming the JSON root is an array of objects.
-            # If it's a single large object or a different structure, this iteration needs adjustment.
             for item in json_data:
                 current_batch.append(item.to_python())
 
                 if len(current_batch) >= batch_size:
                     if writer is None:
-                        # First batch, infer schema and initialize writer
-                        table = pa.Table.from_pylist(current_batch)
-                        schema = table.schema
-                        writer = pq.ParquetWriter(parquet_file_path, schema)
-                        writer.write_table(table)
+                        # Primer lote: inferir esquema y luego hacerlo nullable
+                        temp_table = pa.Table.from_pylist(current_batch)
+                        inferred_schema = temp_table.schema
+                        inferred_and_nullable_schema = make_schema_nullable(inferred_schema)
+                        
+                        writer = pq.ParquetWriter(parquet_file_path, inferred_and_nullable_schema)
+                        writer.write_table(pa.Table.from_pylist(current_batch, schema=inferred_and_nullable_schema))
                     else:
-                        # Subsequent batches, use existing schema
-                        table = pa.Table.from_pylist(current_batch, schema=schema)
+                        # Lotes subsiguientes: usar el esquema modificado
+                        table = pa.Table.from_pylist(current_batch, schema=inferred_and_nullable_schema)
                         writer.write_table(table)
 
                     records_processed += len(current_batch)
                     print(f"Processed {records_processed} records...")
                     current_batch = []
 
-            # Write any remaining records in the last batch
+            # Escribir cualquier registro restante en el último lote
             if current_batch:
-                if writer is None: # Handles cases where total records < batch_size
-                    if not current_batch: # No data at all
-                         print(f"Warning: No data found in '{json_file_path}'. Empty Parquet file will be created if it wasn't already.")
-                         # Ensure an empty parquet file is created with a schema if possible, or handle error
-                         # For now, let's assume if no data, no file or an empty one is okay.
-                         # If a schema must be defined for an empty file, that's an extra step.
-                         # If current_batch is empty and writer is None, we might not even be able to get a schema.
-                         # Let's create an empty table with a dummy schema if truly no data.
-                         # This part might need refinement based on desired behavior for empty JSON.
-                         if not records_processed: # Only print this if nothing was ever processed
-                            print("No records to write. Parquet file might be empty or not created.")
-                         # To ensure a file is created, we might need to write an empty table.
-                         # However, without a schema, this is tricky.
-                         # For now, if current_batch is empty and writer is None, we do nothing further here.
-                    else: # Data exists, but less than one batch
-                        table = pa.Table.from_pylist(current_batch)
-                        schema = table.schema
-                        writer = pq.ParquetWriter(parquet_file_path, schema)
-                        writer.write_table(table)
-                else:
-                    table = pa.Table.from_pylist(current_batch, schema=schema)
-                    writer.write_table(table)
+                if writer is None: # Maneja casos donde el total de registros < batch_size
+                    # Si no hay datos previamente procesados, inferir el esquema del lote actual
+                    # y luego hacerlo nullable.
+                    if not inferred_and_nullable_schema: # Si el esquema no se ha inferido aún (e.g., solo un lote pequeño)
+                        temp_table = pa.Table.from_pylist(current_batch)
+                        inferred_schema = temp_table.schema
+                        inferred_and_nullable_schema = make_schema_nullable(inferred_schema)
+
+                    writer = pq.ParquetWriter(parquet_file_path, inferred_and_nullable_schema)
+                
+                table = pa.Table.from_pylist(current_batch, schema=inferred_and_nullable_schema)
+                writer.write_table(table)
                 records_processed += len(current_batch)
                 print(f"Processed final batch of {len(current_batch)} records.")
 
         if records_processed == 0:
-            print(f"Warning: No data was processed from '{json_file_path}'. Output Parquet file might be empty or not created as expected.")
-            # If you need to guarantee an empty Parquet file with a specific schema even for empty JSON,
-            # that would require defining a default schema or handling it differently.
-            # For now, if no records, and writer was never initialized, no file is written by ParquetWriter.
-            # To ensure an empty file, one could initialize ParquetWriter with a predefined empty schema if no data.
-            # This example assumes it's okay if no file is written for an empty JSON array.
+            print(f"Warning: No data was processed from '{json_file_path}'. An empty Parquet file with a nullable-friendly schema will be created if possible.")
+            # Si no hay registros y el writer nunca se inicializó, crear un archivo Parquet vacío
+            # con un esquema que PyArrow pueda inferir de una lista vacía, y luego hacerlo nullable.
+            # Esto puede ser un desafío si no hay datos para inferir *ningún* campo.
+            # Una alternativa aquí sería tener un esquema por defecto muy básico si no se infiere nada.
+            if writer is None:
+                # Intenta inferir un esquema de una lista vacía, que resultará en un esquema vacío.
+                # Luego, hazlo nullable (aunque no tendrá efecto si no hay campos).
+                # Para garantizar un archivo .parquet válido, a veces se necesita un esquema mínimo.
+                # Para un script verdaderamente general, esto es un punto delicado:
+                # si el JSON está vacío, ¿qué esquema debe tener el Parquet resultante?
+                # Por ahora, se creará un Parquet con un esquema vacío si la fuente está vacía.
+                inferred_and_nullable_schema = make_schema_nullable(pa.schema([])) # Esquema vacío, luego nullable
+                writer = pq.ParquetWriter(parquet_file_path, inferred_and_nullable_schema)
+                empty_table = pa.Table.from_pylist([], schema=inferred_and_nullable_schema)
+                writer.write_table(empty_table)
+                print("An empty Parquet file with a basic nullable schema was created.")
+
 
         print(f"Successfully converted '{json_file_path}' to '{parquet_file_path}'. Total records: {records_processed}")
 
     except FileNotFoundError:
         print(f"Error: JSON file not found at '{json_file_path}'")
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f"An error occurred: {e}, len(current_batch): {len(current_batch)}")
         traceback.print_exc()
     finally:
         if writer:
