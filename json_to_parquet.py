@@ -1,4 +1,5 @@
 import argparse
+import traceback
 import bigjson
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -84,6 +85,7 @@ def json_to_parquet(json_file_path, parquet_file_path, batch_size=1000):
         print(f"Error: JSON file not found at '{json_file_path}'")
     except Exception as e:
         print(f"An error occurred: {e}")
+        traceback.print_exc()
     finally:
         if writer:
             writer.close()
