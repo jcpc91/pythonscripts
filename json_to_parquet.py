@@ -1,6 +1,7 @@
 import argparse
 import traceback
 import bigjson
+import json
 import pyarrow as pa
 import pyarrow.parquet as pq
 
@@ -31,6 +32,24 @@ def make_schema_nullable(schema):
             new_fields.append(pa.field(field.name, field.type, nullable=True))
     
     return pa.schema(new_fields)
+
+
+def save_to_json(data, filename):
+    """Saves the given data to a JSON file."""
+    try:
+        with open(filename, 'w') as f:
+            # For PyArrow schema, convert to string for serialization
+            if isinstance(data, pa.Schema):
+                json.dump(str(data), f, indent=4)
+            else:
+                json.dump(data, f, indent=4)
+        print(f"Successfully saved data to {filename}")
+    except IOError as e:
+        print(f"Error saving data to {filename}: {e}")
+    except TypeError as e:
+        print(f"Error serializing data to JSON for {filename}: {e}. Data type: {type(data)}")
+    except Exception as e:
+        print(f"An unexpected error occurred while saving to {filename}: {e}")
 
 
 def json_to_parquet(json_file_path, parquet_file_path, batch_size=1000):
@@ -117,6 +136,12 @@ def json_to_parquet(json_file_path, parquet_file_path, batch_size=1000):
         print(f"Error: JSON file not found at '{json_file_path}'")
     except Exception as e:
         print(f"An error occurred: {e}, len(current_batch): {len(current_batch)}")
+        # Save current_batch and inferred_and_nullable_schema to JSON
+        save_to_json(current_batch, "current_batch.json")
+        if inferred_and_nullable_schema:
+            save_to_json(inferred_and_nullable_schema, "inferred_and_nullable_schema.json")
+        else:
+            print("inferred_and_nullable_schema is None, not saving to JSON.")
         traceback.print_exc()
     finally:
         if writer:
