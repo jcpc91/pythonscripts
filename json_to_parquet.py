@@ -81,7 +81,7 @@ def json_to_parquet(json_file_path, parquet_file_path, batch_size=1000):
                         temp_table = pa.Table.from_pylist(current_batch)
                         inferred_schema = temp_table.schema
                         inferred_and_nullable_schema = make_schema_nullable(inferred_schema)
-                        
+                        save_to_json(inferred_and_nullable_schema, 'current_schema.json')
                         writer = pq.ParquetWriter(parquet_file_path, inferred_and_nullable_schema)
                         writer.write_table(pa.Table.from_pylist(current_batch, schema=inferred_and_nullable_schema))
                     else:
@@ -136,10 +136,11 @@ def json_to_parquet(json_file_path, parquet_file_path, batch_size=1000):
         print(f"Error: JSON file not found at '{json_file_path}'")
     except Exception as e:
         print(f"An error occurred: {e}, len(current_batch): {len(current_batch)}")
-        # Save current_batch and inferred_and_nullable_schema to JSON
-        save_to_json(current_batch, "current_batch.json")
-        if inferred_and_nullable_schema:
-            save_to_json(inferred_and_nullable_schema, "inferred_and_nullable_schema.json")
+        save_to_json(current_batch, "error_current_batch.json")
+        temp_table = pa.Table.from_pylist(current_batch)
+        current_schema = temp_table.schema
+        if current_schema:
+            save_to_json(current_schema, "error_current_schema.json")
         else:
             print("inferred_and_nullable_schema is None, not saving to JSON.")
         traceback.print_exc()
