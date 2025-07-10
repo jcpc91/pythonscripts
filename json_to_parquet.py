@@ -242,10 +242,32 @@ def json_to_parquet(json_file_path, parquet_file_path, schema_file_path, batch_s
                         for i, record_in_batch in enumerate(cleaned_batch):
                             try:
                                 pa.Table.from_pylist([record_in_batch], schema=pyarrow_schema_final)
-                            except pa.lib.ArrowInvalid as e_single:
-                                print(f"  Problematic record at index {i} in current batch: {json.dumps(record_in_batch, indent=2, ensure_ascii=False)}")
-                                print(f"  Error for this record: {e_single}")
-                                break
+                            except pa.lib.ArrowInvalid as e_single_record:
+                                print(f"  Registro problemático encontrado en el índice {i} del lote actual:")
+                                print(f"  {json.dumps(record_in_batch, indent=2, ensure_ascii=False)}")
+                                print(f"  Error específico para este registro: {e_single_record}")
+                                print(f"  Intentando identificar el campo problemático dentro del registro...")
+                                for field_name_detail, field_value_detail in record_in_batch.items():
+                                    try:
+                                        if field_name_detail not in inferred_and_nullable_schema.names:
+                                            print(f"    Advertencia: El campo '{field_name_detail}' del registro no está en el esquema inferido. Omitiendo análisis detallado para este campo.")
+                                            continue
+
+                                        schema_field_detail = inferred_and_nullable_schema.field(field_name_detail)
+                                        single_field_schema_detail = pa.schema([schema_field_detail])
+                                        pa.Table.from_pylist([{field_name_detail: field_value_detail}], schema=single_field_schema_detail)
+                                    except pa.lib.ArrowInvalid as e_field_detail:
+                                        print(f"    --> Campo problemático: '{field_name_detail}'")
+                                        try:
+                                            field_value_str = json.dumps(field_value_detail, ensure_ascii=False)
+                                        except TypeError:
+                                            field_value_str = str(field_value_detail) # Fallback if not JSON serializable
+                                        print(f"        Valor: {field_value_str} (Tipo Python: {type(field_value_detail).__name__})")
+                                        print(f"        Definición de campo en esquema: {str(schema_field_detail)}")
+                                        print(f"        Error específico del campo: {e_field_detail}")
+                                        # No break here, to see all problematic fields in the record if there are multiple
+                                print(f"  Fin del análisis detallado de campos para el registro problemático.")
+                                break # Detener después de encontrar el primer registro problemático en el LOTE
                         raise e_arrow # Re-raise original batch error
 
                     writer.write_table(table)
