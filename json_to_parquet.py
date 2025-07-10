@@ -129,8 +129,31 @@ def json_to_parquet(json_file_path, parquet_file_path, batch_size=1000):
                         # Primer lote: inferir esquema y luego hacerlo nullable
                         temp_table = pa.Table.from_pylist(current_batch)
                         inferred_schema = temp_table.schema
+
+                        # --- START MODIFICATION for Zantiguedad ---
+                        fields = list(inferred_schema)
+                        modified_fields = []
+                        specific_field_modified = False
+                        for field in fields:
+                            if field.name == 'Zantiguedad':
+                                if pa.types.is_null(field.type):
+                                    print(f"Modifying schema (first batch): Changing Zantiguedad from {field.type} to pa.string()")
+                                    # Create new field as string, make_schema_nullable will ensure it's nullable
+                                    modified_fields.append(pa.field(field.name, pa.string(), nullable=False, metadata=field.metadata))
+                                    specific_field_modified = True
+                                else:
+                                    modified_fields.append(field) # Keep original if not null type
+                            else:
+                                modified_fields.append(field)
+
+                        if specific_field_modified:
+                            inferred_schema = pa.schema(modified_fields, metadata=inferred_schema.metadata if hasattr(inferred_schema, 'metadata') else None)
+                            print("Schema updated specifically for Zantiguedad (first batch).")
+                        # --- END MODIFICATION ---
+
                         inferred_and_nullable_schema = make_schema_nullable(inferred_schema)
-                        save_to_json(inferred_and_nullable_schema, 'current_schema.json')
+                        # Save the final schema that will be used (potentially modified for Zantiguedad).
+                        save_to_json(inferred_and_nullable_schema, 'inferred_and_nullable_schema.json')
                         writer = pq.ParquetWriter(parquet_file_path, inferred_and_nullable_schema)
                     
                     # Limpiar el lote actual antes de pasarlo a PyArrow
@@ -186,7 +209,30 @@ def json_to_parquet(json_file_path, parquet_file_path, batch_size=1000):
                     if not inferred_and_nullable_schema: # Si el esquema no se ha inferido aún (e.g., solo un lote pequeño)
                         temp_table = pa.Table.from_pylist(current_batch)
                         inferred_schema = temp_table.schema
+
+                        # --- START MODIFICATION for Zantiguedad (final batch) ---
+                        fields = list(inferred_schema)
+                        modified_fields = []
+                        specific_field_modified = False
+                        for field in fields:
+                            if field.name == 'Zantiguedad':
+                                if pa.types.is_null(field.type):
+                                    print(f"Modifying schema (final batch): Changing Zantiguedad from {field.type} to pa.string()")
+                                    modified_fields.append(pa.field(field.name, pa.string(), nullable=False, metadata=field.metadata))
+                                    specific_field_modified = True
+                                else:
+                                    modified_fields.append(field)
+                            else:
+                                modified_fields.append(field)
+
+                        if specific_field_modified:
+                            inferred_schema = pa.schema(modified_fields, metadata=inferred_schema.metadata if hasattr(inferred_schema, 'metadata') else None)
+                            print("Schema updated specifically for Zantiguedad (final batch).")
+                        # --- END MODIFICATION ---
+
                         inferred_and_nullable_schema = make_schema_nullable(inferred_schema)
+                        # Save the final schema that will be used.
+                        save_to_json(inferred_and_nullable_schema, 'inferred_and_nullable_schema.json')
 
                     writer = pq.ParquetWriter(parquet_file_path, inferred_and_nullable_schema)
                 
@@ -203,30 +249,31 @@ def json_to_parquet(json_file_path, parquet_file_path, batch_size=1000):
                             pa.Table.from_pylist([record_in_batch], schema=inferred_and_nullable_schema)
                         except pa.lib.ArrowInvalid as e_single_record:
                             print(f"  Registro problemático encontrado en el índice {i} del lote actual:")
-                                print(f"  {json.dumps(record_in_batch, indent=2, ensure_ascii=False)}")
+                            print(f"  {json.dumps(record_in_batch, indent=2, ensure_ascii=False)}")
                             print(f"  Error específico para este registro: {e_single_record}")
-                                print(f"  Intentando identificar el campo problemático dentro del registro...")
-                                for field_name_detail, field_value_detail in record_in_batch.items():
-                                    try:
-                                        if field_name_detail not in inferred_and_nullable_schema.names:
-                                            print(f"    Advertencia: El campo '{field_name_detail}' del registro no está en el esquema inferido. Omitiendo análisis detallado para este campo.")
-                                            continue
+                            print(f"  Intentando identificar el campo problemático dentro del registro...")
+                            # Correctly indented loop and its content
+                            for field_name_detail, field_value_detail in record_in_batch.items():
+                                try:
+                                    if field_name_detail not in inferred_and_nullable_schema.names:
+                                        print(f"    Advertencia: El campo '{field_name_detail}' del registro no está en el esquema inferido. Omitiendo análisis detallado para este campo.")
+                                        continue
 
-                                        schema_field_detail = inferred_and_nullable_schema.field(field_name_detail)
-                                        single_field_schema_detail = pa.schema([schema_field_detail])
-                                        pa.Table.from_pylist([{field_name_detail: field_value_detail}], schema=single_field_schema_detail)
-                                    except pa.lib.ArrowInvalid as e_field_detail:
-                                        print(f"    --> Campo problemático: '{field_name_detail}'")
-                                        try:
-                                            field_value_str = json.dumps(field_value_detail, ensure_ascii=False)
-                                        except TypeError:
-                                            field_value_str = str(field_value_detail) # Fallback if not JSON serializable
-                                        print(f"        Valor: {field_value_str} (Tipo Python: {type(field_value_detail).__name__})")
-                                        print(f"        Definición de campo en esquema: {str(schema_field_detail)}")
-                                        print(f"        Error específico del campo: {e_field_detail}")
-                                        # No break here, to see all problematic fields in the record if there are multiple
-                                print(f"  Fin del análisis detallado de campos para el registro problemático.")
-                                break # Detener después de encontrar el primer registro problemático en el LOTE
+                                    schema_field_detail = inferred_and_nullable_schema.field(field_name_detail)
+                                    single_field_schema_detail = pa.schema([schema_field_detail])
+                                    pa.Table.from_pylist([{field_name_detail: field_value_detail}], schema=single_field_schema_detail)
+                                except pa.lib.ArrowInvalid as e_field_detail:
+                                    print(f"    --> Campo problemático: '{field_name_detail}'")
+                                    try:
+                                        field_value_str = json.dumps(field_value_detail, ensure_ascii=False)
+                                    except TypeError:
+                                        field_value_str = str(field_value_detail) # Fallback if not JSON serializable
+                                    print(f"        Valor: {field_value_str} (Tipo Python: {type(field_value_detail).__name__})")
+                                    print(f"        Definición de campo en esquema: {str(schema_field_detail)}")
+                                    print(f"        Error específico del campo: {e_field_detail}")
+                                    # No break here, to see all problematic fields in the record if there are multiple
+                            print(f"  Fin del análisis detallado de campos para el registro problemático.")
+                            break # Detener después de encontrar el primer registro problemático en el LOTE
                     raise e_arrow # Re-lanzar el error original para que se maneje en el bloque outer except
 
                 writer.write_table(table)
