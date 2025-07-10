@@ -121,18 +121,8 @@ def json_to_parquet(json_file_path, parquet_file_path, batch_size=1000):
         with open(json_file_path, 'rb') as f: # bigjson expects a binary file handle
             json_data = bigjson.load(f)
 
-            # Access the actual list of records
-            # The input JSON has a structure like {"d": {"results": [...]}}
-            try:
-                results_array = json_data['d']['results']
-            except (TypeError, KeyError) as e:
-                print(f"Error accessing nested 'd' or 'results' key in JSON. Structure might be unexpected. Error: {e}")
-                # Optionally, save the problematic structure or part of it
-                # save_to_json(json_data.to_python() if hasattr(json_data, 'to_python') else str(json_data), "error_json_structure.json")
-                raise ValueError("JSON structure does not contain 'd.results' path to the records array.")
-
-            for record_item_bj in results_array: # Iterate over the bigjson array items
-                current_batch.append(record_item_bj.to_python())
+            for item in json_data:
+                current_batch.append(item.to_python())
 
                 if len(current_batch) >= batch_size:
                     if writer is None:
