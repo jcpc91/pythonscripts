@@ -1,0 +1,18 @@
+[
+    {
+        "id": "1",
+        "person": {"firstName": "John", "lastName": "Doe"},
+        "tags": ["alpha", "beta"],
+        "scores": [10, 20],
+        "address": {"street": "123 Main St", "city": "Anytown"},
+        "nullableField": "value"
+    },
+    {
+        "id": "2",
+        "person": {"firstName": "Jane", "lastName": "Doe"},
+        "tags": ["gamma"],
+        "scores": [30, 40, 50],
+        "address": {"street": "456 Oak St", "city": "Otherville"},
+        "nullableField": null
+    }
+]
