@@ -1,0 +1,1091 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "__metadata": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "uri": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "uri"
+        ]
+      },
+      "BusinessPartner": {
+        "type": "string"
+      },
+      "ZclienteBp": {
+        "type": "string"
+      },
+      "ZentCalles": {
+        "type": "string"
+      },
+      "ZantigMeses": {
+        "type": "integer"
+      },
+      "ZantigAnios": {
+        "type": "integer"
+      },
+      "Zcurp": {
+        "type": "string"
+      },
+      "Zcredito": {
+        "type": "string"
+      },
+      "Zprospecto": {
+        "type": "string"
+      },
+      "Zagenteserv": {
+        "type": "string"
+      },
+      "Zcreditoesp": {
+        "type": "string"
+      },
+      "Zcrmimporte": {
+        "type": "string"
+      },
+      "Zcrmcantidad": {
+        "type": "string"
+      },
+      "Zfecha4": {
+        "type": "string"
+      },
+      "Zusuariopos": {
+        "type": "string"
+      },
+      "ZidTipoCalles": {
+        "type": "string"
+      },
+      "ZidestatSup": {
+        "type": "string"
+      },
+      "ZrecomendPor": {
+        "type": "string"
+      },
+      "ZimporRent": {
+        "type": "string"
+      },
+      "ZviveencCal": {
+        "type": "string"
+      },
+      "ZantigNeg": {
+        "type": "integer"
+      },
+      "ZpartentRec": {
+        "type": "string"
+      },
+      "ZdirRecom": {
+        "type": "string"
+      },
+      "ZserieMon": {
+        "type": "string"
+      },
+      "ZlimCred": {
+        "type": "string"
+      },
+      "ZidAval": {
+        "type": "string"
+      },
+      "Zlcaxsi": {
+        "type": "string"
+      },
+      "ZidMagento": {
+        "type": "integer"
+      },
+      "ZingMensCredw": {
+        "type": "string"
+      },
+      "ZlimCedDimae": {
+        "type": "string"
+      },
+      "ZidTipoDima": {
+        "type": "string"
+      },
+      "Zirreg": {
+        "type": "string"
+      },
+      "ZnegBc": {
+        "type": "string"
+      },
+      "ZserieMonViu": {
+        "type": "string"
+      },
+      "Znipventa": {
+        "type": "string"
+      },
+      "Znipcobro": {
+        "type": "string"
+      },
+      "ZreestrucDeud": {
+        "type": "string"
+      },
+      "ZclabeCuenta": {
+        "type": "string"
+      },
+      "ZlcaxsiMay": {
+        "type": "string"
+      },
+      "ZtipoCredito": {
+        "type": "string"
+      },
+      "ZcpaxaMay": {
+        "type": "string"
+      },
+      "ZingresoTip": {
+        "type": "string"
+      },
+      "Zbanco": {
+        "type": "string"
+      },
+      "ZctaClabeValid": {
+        "type": "string"
+      },
+      "ZfolioPagMay": {
+        "type": "string"
+      },
+      "ZvalorPagMay": {
+        "type": "string"
+      },
+      "ZapoyoVtaDima": {
+        "type": "integer"
+      },
+      "ZidCtaClDisp": {
+        "type": "integer"
+      },
+      "ZapoyCobr": {
+        "type": "string"
+      },
+      "ZretApoyCobr": {
+        "type": "string"
+      },
+      "ZintSolApoy": {
+        "type": "integer"
+      },
+      "ZtotalAsign": {
+        "type": "integer"
+      },
+      "ZnivEsp": {
+        "type": "string"
+      },
+      "Zcompania": {
+        "type": "string"
+      },
+      "ZcodSms": {
+        "type": "integer"
+      },
+      "ZsmsValid": {
+        "type": "string"
+      },
+      "ZfechValid": {
+        "type": "string"
+      },
+      "ZdoctoValid": {
+        "type": "string"
+      },
+      "ZidTipoBf": {
+        "type": "string"
+      },
+      "ZviveCon": {
+        "type": "string"
+      },
+      "ZfechCateg": {
+        "type": "string"
+      },
+      "ZusuarioIrreg": {
+        "type": "string"
+      },
+      "ZfechaIrreg": {
+        "type": "null"
+      },
+      "ZmotivoIrreg": {
+        "type": "string"
+      },
+      "ZsinBoifBf": {
+        "type": "string"
+      },
+      "ZmapLat": {
+        "type": "string"
+      },
+      "ZmapLong": {
+        "type": "string"
+      },
+      "ZreestDeuda": {
+        "type": "string"
+      },
+      "ZusValidTarj": {
+        "type": "string"
+      },
+      "ZidVivEnCalid": {
+        "type": "string"
+      },
+      "Zcita": {
+        "type": "string"
+      },
+      "ZnumPag": {
+        "type": "integer"
+      },
+      "ZfecUltPag": {
+        "type": "null"
+      },
+      "ZtipoCliente": {
+        "type": "string"
+      },
+      "zidcteTel": {
+        "type": "string"
+      },
+      "ztipoCte": {
+        "type": "string"
+      },
+      "ztelCte": {
+        "type": "string"
+      },
+      "zfecha": {
+        "type": "null"
+      },
+      "zenvioNip": {
+        "type": "boolean"
+      },
+      "zappOrig": {
+        "type": "string"
+      },
+      "zfechaCap": {
+        "type": "null"
+      },
+      "zelExist": {
+        "type": "boolean"
+      },
+      "ztraeTel": {
+        "type": "boolean"
+      },
+      "zintentos": {
+        "type": "string"
+      },
+      "ztipoValid": {
+        "type": "string"
+      },
+      "zidcteCto": {
+        "type": "string"
+      },
+      "zidcteCtoTipo": {
+        "type": "string"
+      },
+      "znombre": {
+        "type": "string"
+      },
+      "zapellidop": {
+        "type": "string"
+      },
+      "zapellidom": {
+        "type": "string"
+      },
+      "zfechaNac": {
+        "type": "null"
+      },
+      "ztel": {
+        "type": "string"
+      },
+      "zemail": {
+        "type": "string"
+      },
+      "ztratam": {
+        "type": "string"
+      },
+      "zsexo": {
+        "type": "string"
+      },
+      "zparentesco": {
+        "type": "string"
+      },
+      "zestatus_sup": {
+        "type": "string"
+      },
+      "zvive_con": {
+        "type": "string"
+      },
+      "zedo_civil": {
+        "type": "string"
+      },
+      "zcte_supervisado": {
+        "type": "boolean"
+      },
+      "ztipo_inter": {
+        "type": "string"
+      },
+      "zes_casa": {
+        "type": "boolean"
+      },
+      "znum_cuenta": {
+        "type": "string"
+      },
+      "zconyuge": {
+        "type": "string"
+      },
+      "zenvia_buro_cred": {
+        "type": "boolean"
+      },
+      "zrfc": {
+        "type": "string"
+      },
+      "znacionalidad": {
+        "type": "string"
+      },
+      "znivelcobr_esp_contd": {
+        "type": "string"
+      },
+      "zcontact_sel_val": {
+        "type": "boolean"
+      },
+      "zretiro_firm_aval": {
+        "type": "boolean"
+      },
+      "zbenef": {
+        "type": "string"
+      },
+      "Zempresa": {
+        "type": "string"
+      },
+      "Zfunciones": {
+        "type": "string"
+      },
+      "Zdepto": {
+        "type": "string"
+      },
+      "Zantiguedad": {
+        "type": "null"
+      },
+      "ZjefeInmed": {
+        "type": "string"
+      },
+      "ZpuestoJefInm": {
+        "type": "string"
+      },
+      "Zingresos": {
+        "type": "string"
+      },
+      "ZperiodIng": {
+        "type": "string"
+      },
+      "Zcomprobabl": {
+        "type": "boolean"
+      },
+      "Zdire": {
+        "type": "string"
+      },
+      "Zcolonia": {
+        "type": "string"
+      },
+      "ZcodPostal": {
+        "type": "string"
+      },
+      "Zestado": {
+        "type": "string"
+      },
+      "Zcruces": {
+        "type": "string"
+      },
+      "Zextens": {
+        "type": "string"
+      },
+      "ZtrabAnt": {
+        "type": "string"
+      },
+      "ZtaCp": {
+        "type": "string"
+      },
+      "ZtaColonia": {
+        "type": "string"
+      },
+      "ZantigMes": {
+        "type": "integer"
+      },
+      "ZantigAnio": {
+        "type": "integer"
+      },
+      "ZnumExt": {
+        "type": "string"
+      },
+      "ZnumInt": {
+        "type": "string"
+      },
+      "Zpobl": {
+        "type": "string"
+      },
+      "Zpais": {
+        "type": "string"
+      },
+      "ZtaDire": {
+        "type": "string"
+      },
+      "ZtaNumExt": {
+        "type": "string"
+      },
+      "ZtaNumInt": {
+        "type": "string"
+      },
+      "ZtaEntreCalles": {
+        "type": "string"
+      },
+      "ZtaPobl": {
+        "type": "string"
+      },
+      "ZtaEdo": {
+        "type": "string"
+      },
+      "ZtaPais": {
+        "type": "string"
+      },
+      "ZtaTel": {
+        "type": "string"
+      },
+      "ZtaExt": {
+        "type": "string"
+      },
+      "ZtipoCalle": {
+        "type": "string"
+      },
+      "ZtaTipoCalle": {
+        "type": "string"
+      },
+      "ZtipoEmpleo": {
+        "type": "string"
+      },
+      "TipoSocioComercial": {
+        "type": "string"
+      },
+      "Agrupacion": {
+        "type": "string"
+      },
+      "ConceptoBusqueda1": {
+        "type": "string"
+      },
+      "ConceptoBusqueda2": {
+        "type": "string"
+      },
+      "Titulo": {
+        "type": "string"
+      },
+      "Tratamiento": {
+        "type": "string"
+      },
+      "PersonaFisica": {
+        "type": "string"
+      },
+      "Nombre": {
+        "type": "string"
+      },
+      "Nombre2": {
+        "type": "string"
+      },
+      "Nombre3": {
+        "type": "string"
+      },
+      "Nombre4": {
+        "type": "string"
+      },
+      "PrimerNombre": {
+        "type": "string"
+      },
+      "SegundoNombre": {
+        "type": "string"
+      },
+      "PrimerApellido": {
+        "type": "string"
+      },
+      "SegundoApellido": {
+        "type": "string"
+      },
+      "Calle": {
+        "type": "string"
+      },
+      "NumExt": {
+        "type": "string"
+      },
+      "CompNumInt": {
+        "type": "string"
+      },
+      "Calle2": {
+        "type": "string"
+      },
+      "Calle3": {
+        "type": "string"
+      },
+      "Colonia1": {
+        "type": "string"
+      },
+      "Colonia2": {
+        "type": "string"
+      },
+      "Municipio": {
+        "type": "string"
+      },
+      "Poblacion": {
+        "type": "string"
+      },
+      "CP": {
+        "type": "string"
+      },
+      "Pais": {
+        "type": "string"
+      },
+      "Region": {
+        "type": "string"
+      },
+      "Horario": {
+        "type": "string"
+      },
+      "Idioma": {
+        "type": "string"
+      },
+      "ZonaTransporte": {
+        "type": "string"
+      },
+      "Telefono": {
+        "type": "string"
+      },
+      "Exten": {
+        "type": "string"
+      },
+      "TelefonoMovil": {
+        "type": "string"
+      },
+      "Mail": {
+        "type": "string"
+      },
+      "InicioValidez": {
+        "type": "string"
+      },
+      "FinValidez": {
+        "type": "string"
+      },
+      "GrupoDirecciones": {
+        "type": "string"
+      },
+      "DireccionPersonal": {
+        "type": "boolean"
+      },
+      "Comentarios": {
+        "type": "string"
+      },
+      "Sexo": {
+        "type": "string"
+      },
+      "TipoSocioCom": {
+        "type": "boolean"
+      },
+      "Masculino": {
+        "type": "string"
+      },
+      "CreadoPor": {
+        "type": "string"
+      },
+      "ModificadoPor": {
+        "type": "string"
+      },
+      "ModificadoEl": {
+        "type": "string"
+      },
+      "ModificadoALas": {
+        "type": "string"
+      },
+      "PersonaFisica2": {
+        "type": "string"
+      },
+      "NumIDFiscal": {
+        "type": "string"
+      },
+      "SujetoIVA": {
+        "type": "boolean"
+      },
+      "IDPagos": {
+        "type": "string"
+      },
+      "Pais2": {
+        "type": "string"
+      },
+      "ClaveBanco": {
+        "type": "string"
+      },
+      "CuentaBancaria": {
+        "type": "string"
+      },
+      "Ramo": {
+        "type": "string"
+      },
+      "GrupoCuentas": {
+        "type": "string"
+      },
+      "Cliente": {
+        "type": "string"
+      },
+      "Sociedad": {
+        "type": "string"
+      },
+      "CuentaAsociada": {
+        "type": "string"
+      },
+      "ViaPago": {
+        "type": "string"
+      },
+      "Compensar": {
+        "type": "boolean"
+      },
+      "CondicionPago": {
+        "type": "string"
+      },
+      "GrupoTesoreria": {
+        "type": "string"
+      },
+      "AnotarHistorial": {
+        "type": "boolean"
+      },
+      "GrupoTolerancia": {
+        "type": "string"
+      },
+      "NumCuentaAnt": {
+        "type": "string"
+      },
+      "PersonaContacto": {
+        "type": "string"
+      },
+      "Cliente_f": {
+        "type": "string"
+      },
+      "NombrePila": {
+        "type": "string"
+      },
+      "Nombre_f": {
+        "type": "string"
+      },
+      "ConceptoBusqueda": {
+        "type": "string"
+      },
+      "PaisSuministrador": {
+        "type": "string"
+      },
+      "TipoImpuesto": {
+        "type": "string"
+      },
+      "ClasFiscalDeudor": {
+        "type": "string"
+      },
+      "OrgVentas": {
+        "type": "string"
+      },
+      "CanalDist": {
+        "type": "string"
+      },
+      "Sector": {
+        "type": "string"
+      },
+      "CreadoPor2": {
+        "type": "string"
+      },
+      "CreadoEl2": {
+        "type": "null"
+      },
+      "EsquemaClientes": {
+        "type": "string"
+      },
+      "GrupoClientes": {
+        "type": "string"
+      },
+      "ZonaVentas": {
+        "type": "string"
+      },
+      "GrupoPrecioCliente": {
+        "type": "string"
+      },
+      "ListaPrecios": {
+        "type": "string"
+      },
+      "ProbabilidadPedido": {
+        "type": "string"
+      },
+      "Incoterms1": {
+        "type": "string"
+      },
+      "Incoterms2": {
+        "type": "string"
+      },
+      "MaxEntregasParc": {
+        "type": "string"
+      },
+      "PrioridadEntrega": {
+        "type": "string"
+      },
+      "CuentaDeudor": {
+        "type": "string"
+      },
+      "CondicionExpedicion": {
+        "type": "string"
+      },
+      "Moneda": {
+        "type": "string"
+      },
+      "GrupoImpCliente": {
+        "type": "string"
+      },
+      "CondPago": {
+        "type": "string"
+      },
+      "CentroSuministrador": {
+        "type": "string"
+      },
+      "GrupoVendedores": {
+        "type": "string"
+      },
+      "OficinaVentas": {
+        "type": "string"
+      },
+      "GrupoClientes1": {
+        "type": "string"
+      },
+      "Cliente_P": {
+        "type": "string"
+      },
+      "OrgVentas_P": {
+        "type": "string"
+      },
+      "CanalDistribucion_P": {
+        "type": "string"
+      },
+      "Sector_P": {
+        "type": "string"
+      },
+      "FuncionSocio": {
+        "type": "string"
+      },
+      "Cliente2": {
+        "type": "string"
+      },
+      "RFC": {
+        "type": "string"
+      },
+      "FechaNacimiento": {
+        "type": "null"
+      },
+      "EstadoCivil": {
+        "type": "string"
+      },
+      "Nacionalidad": {
+        "type": "string"
+      },
+      "Ingresos": {
+        "type": "string"
+      },
+      "FiscalRegimen": {
+        "type": "string"
+      },
+      "UsoCFDI": {
+        "type": "string"
+      },
+      "BloqueoCentral": {
+        "type": "boolean"
+      },
+      "Indicador": {
+        "type": "boolean"
+      },
+      "BloqueoPedidoVentas": {
+        "type": "string"
+      },
+      "BloqueoPedidoVentasSel": {
+        "type": "string"
+      },
+      "BloqueoEntregaVentas": {
+        "type": "string"
+      },
+      "BloqueoEntregaCliente": {
+        "type": "string"
+      },
+      "BloqueoFacturaCliente": {
+        "type": "string"
+      },
+      "BloqueoFacturaClienteNC": {
+        "type": "string"
+      },
+      "PeticionBorradoClienteNC": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "Agrupacion",
+      "AnotarHistorial",
+      "BloqueoCentral",
+      "BloqueoEntregaCliente",
+      "BloqueoEntregaVentas",
+      "BloqueoFacturaCliente",
+      "BloqueoFacturaClienteNC",
+      "BloqueoPedidoVentas",
+      "BloqueoPedidoVentasSel",
+      "BusinessPartner",
+      "CP",
+      "Calle",
+      "Calle2",
+      "Calle3",
+      "CanalDist",
+      "CanalDistribucion_P",
+      "CentroSuministrador",
+      "ClasFiscalDeudor",
+      "ClaveBanco",
+      "Cliente",
+      "Cliente2",
+      "Cliente_P",
+      "Cliente_f",
+      "Colonia1",
+      "Colonia2",
+      "Comentarios",
+      "CompNumInt",
+      "Compensar",
+      "ConceptoBusqueda",
+      "ConceptoBusqueda1",
+      "ConceptoBusqueda2",
+      "CondPago",
+      "CondicionExpedicion",
+      "CondicionPago",
+      "CreadoEl2",
+      "CreadoPor",
+      "CreadoPor2",
+      "CuentaAsociada",
+      "CuentaBancaria",
+      "CuentaDeudor",
+      "DireccionPersonal",
+      "EsquemaClientes",
+      "EstadoCivil",
+      "Exten",
+      "FechaNacimiento",
+      "FinValidez",
+      "FiscalRegimen",
+      "FuncionSocio",
+      "GrupoClientes",
+      "GrupoClientes1",
+      "GrupoCuentas",
+      "GrupoDirecciones",
+      "GrupoImpCliente",
+      "GrupoPrecioCliente",
+      "GrupoTesoreria",
+      "GrupoTolerancia",
+      "GrupoVendedores",
+      "Horario",
+      "IDPagos",
+      "Idioma",
+      "Incoterms1",
+      "Incoterms2",
+      "Indicador",
+      "Ingresos",
+      "InicioValidez",
+      "ListaPrecios",
+      "Mail",
+      "Masculino",
+      "MaxEntregasParc",
+      "ModificadoALas",
+      "ModificadoEl",
+      "ModificadoPor",
+      "Moneda",
+      "Municipio",
+      "Nacionalidad",
+      "Nombre",
+      "Nombre2",
+      "Nombre3",
+      "Nombre4",
+      "NombrePila",
+      "Nombre_f",
+      "NumCuentaAnt",
+      "NumExt",
+      "NumIDFiscal",
+      "OficinaVentas",
+      "OrgVentas",
+      "OrgVentas_P",
+      "Pais",
+      "Pais2",
+      "PaisSuministrador",
+      "PersonaContacto",
+      "PersonaFisica",
+      "PersonaFisica2",
+      "PeticionBorradoClienteNC",
+      "Poblacion",
+      "PrimerApellido",
+      "PrimerNombre",
+      "PrioridadEntrega",
+      "ProbabilidadPedido",
+      "RFC",
+      "Ramo",
+      "Region",
+      "Sector",
+      "Sector_P",
+      "SegundoApellido",
+      "SegundoNombre",
+      "Sexo",
+      "Sociedad",
+      "SujetoIVA",
+      "Telefono",
+      "TelefonoMovil",
+      "TipoImpuesto",
+      "TipoSocioCom",
+      "TipoSocioComercial",
+      "Titulo",
+      "Tratamiento",
+      "UsoCFDI",
+      "ViaPago",
+      "Zagenteserv",
+      "ZantigAnio",
+      "ZantigAnios",
+      "ZantigMes",
+      "ZantigMeses",
+      "ZantigNeg",
+      "Zantiguedad",
+      "ZapoyCobr",
+      "ZapoyoVtaDima",
+      "Zbanco",
+      "Zcita",
+      "ZclabeCuenta",
+      "ZclienteBp",
+      "ZcodPostal",
+      "ZcodSms",
+      "Zcolonia",
+      "Zcompania",
+      "Zcomprobabl",
+      "ZcpaxaMay",
+      "Zcredito",
+      "Zcreditoesp",
+      "Zcrmcantidad",
+      "Zcrmimporte",
+      "Zcruces",
+      "ZctaClabeValid",
+      "Zcurp",
+      "Zdepto",
+      "ZdirRecom",
+      "Zdire",
+      "ZdoctoValid",
+      "Zempresa",
+      "ZentCalles",
+      "Zestado",
+      "Zextens",
+      "ZfecUltPag",
+      "ZfechCateg",
+      "ZfechValid",
+      "Zfecha4",
+      "ZfechaIrreg",
+      "ZfolioPagMay",
+      "Zfunciones",
+      "ZidAval",
+      "ZidCtaClDisp",
+      "ZidMagento",
+      "ZidTipoBf",
+      "ZidTipoCalles",
+      "ZidTipoDima",
+      "ZidVivEnCalid",
+      "ZidestatSup",
+      "ZimporRent",
+      "ZingMensCredw",
+      "ZingresoTip",
+      "Zingresos",
+      "ZintSolApoy",
+      "Zirreg",
+      "ZjefeInmed",
+      "Zlcaxsi",
+      "ZlcaxsiMay",
+      "ZlimCedDimae",
+      "ZlimCred",
+      "ZmapLat",
+      "ZmapLong",
+      "ZmotivoIrreg",
+      "ZnegBc",
+      "Znipcobro",
+      "Znipventa",
+      "ZnivEsp",
+      "ZnumExt",
+      "ZnumInt",
+      "ZnumPag",
+      "ZonaTransporte",
+      "ZonaVentas",
+      "Zpais",
+      "ZpartentRec",
+      "ZperiodIng",
+      "Zpobl",
+      "Zprospecto",
+      "ZpuestoJefInm",
+      "ZrecomendPor",
+      "ZreestDeuda",
+      "ZreestrucDeud",
+      "ZretApoyCobr",
+      "ZserieMon",
+      "ZserieMonViu",
+      "ZsinBoifBf",
+      "ZsmsValid",
+      "ZtaColonia",
+      "ZtaCp",
+      "ZtaDire",
+      "ZtaEdo",
+      "ZtaEntreCalles",
+      "ZtaExt",
+      "ZtaNumExt",
+      "ZtaNumInt",
+      "ZtaPais",
+      "ZtaPobl",
+      "ZtaTel",
+      "ZtaTipoCalle",
+      "ZtipoCalle",
+      "ZtipoCliente",
+      "ZtipoCredito",
+      "ZtipoEmpleo",
+      "ZtotalAsign",
+      "ZtrabAnt",
+      "ZusValidTarj",
+      "ZusuarioIrreg",
+      "Zusuariopos",
+      "ZvalorPagMay",
+      "ZviveCon",
+      "ZviveencCal",
+      "__metadata",
+      "zapellidom",
+      "zapellidop",
+      "zappOrig",
+      "zbenef",
+      "zcontact_sel_val",
+      "zconyuge",
+      "zcte_supervisado",
+      "zedo_civil",
+      "zelExist",
+      "zemail",
+      "zenvia_buro_cred",
+      "zenvioNip",
+      "zes_casa",
+      "zestatus_sup",
+      "zfecha",
+      "zfechaCap",
+      "zfechaNac",
+      "zidcteCto",
+      "zidcteCtoTipo",
+      "zidcteTel",
+      "zintentos",
+      "znacionalidad",
+      "znivelcobr_esp_contd",
+      "znombre",
+      "znum_cuenta",
+      "zparentesco",
+      "zretiro_firm_aval",
+      "zrfc",
+      "zsexo",
+      "ztel",
+      "ztelCte",
+      "ztipoCte",
+      "ztipoValid",
+      "ztipo_inter",
+      "ztraeTel",
+      "ztratam",
+      "zvive_con"
+    ]
+  }
+}
