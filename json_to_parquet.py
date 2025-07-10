@@ -123,7 +123,22 @@ def json_to_parquet(json_file_path, parquet_file_path, batch_size=1000):
                     
                     # Limpiar el lote actual antes de pasarlo a PyArrow
                     cleaned_batch = clean_batch_for_pyarrow(current_batch, inferred_and_nullable_schema)
-                    table = pa.Table.from_pylist(cleaned_batch, schema=inferred_and_nullable_schema)
+                    
+                    try:
+                        table = pa.Table.from_pylist(cleaned_batch, schema=inferred_and_nullable_schema)
+                    except pa.lib.ArrowInvalid as e_arrow:
+                        print(f"\n¡Error de PyArrow al procesar el lote! Intentando identificar el registro problemático...")
+                        for i, record_in_batch in enumerate(cleaned_batch):
+                            try:
+                                # Intentar convertir cada registro individualmente
+                                pa.Table.from_pylist([record_in_batch], schema=inferred_and_nullable_schema)
+                            except pa.lib.ArrowInvalid as e_single_record:
+                                print(f"  Registro problemático encontrado en el índice {i} del lote actual:")
+                                print(f"  {json.dumps(record_in_batch, indent=2)}")
+                                print(f"  Error específico para este registro: {e_single_record}")
+                                break # Detener después de encontrar el primer registro problemático
+                        raise e_arrow # Re-lanzar el error original para que se maneje en el bloque outer except
+
                     writer.write_table(table)
 
                     records_processed += len(current_batch)
@@ -144,7 +159,22 @@ def json_to_parquet(json_file_path, parquet_file_path, batch_size=1000):
                 
                 # Limpiar el lote final antes de pasarlo a PyArrow
                 cleaned_batch = clean_batch_for_pyarrow(current_batch, inferred_and_nullable_schema)
-                table = pa.Table.from_pylist(cleaned_batch, schema=inferred_and_nullable_schema)
+                
+                try:
+                    table = pa.Table.from_pylist(cleaned_batch, schema=inferred_and_nullable_schema)
+                except pa.lib.ArrowInvalid as e_arrow:
+                    print(f"\n¡Error de PyArrow al procesar el lote final! Intentando identificar el registro problemático...")
+                    for i, record_in_batch in enumerate(cleaned_batch):
+                        try:
+                            # Intentar convertir cada registro individualmente
+                            pa.Table.from_pylist([record_in_batch], schema=inferred_and_nullable_schema)
+                        except pa.lib.ArrowInvalid as e_single_record:
+                            print(f"  Registro problemático encontrado en el índice {i} del lote actual:")
+                            print(f"  {json.dumps(record_in_batch, indent=2)}")
+                            print(f"  Error específico para este registro: {e_single_record}")
+                            break # Detener después de encontrar el primer registro problemático
+                    raise e_arrow # Re-lanzar el error original para que se maneje en el bloque outer except
+
                 writer.write_table(table)
                 records_processed += len(current_batch)
                 print(f"Processed final batch of {len(current_batch)} records.")
