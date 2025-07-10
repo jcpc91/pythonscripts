@@ -5,42 +5,173 @@ import json
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+# Diccionario para mapear tipos de JSON Schema a tipos de PyArrow
+JSON_TO_PYARROW_TYPES = {
+    "string": pa.string(),
+    "number": pa.float64(),
+    "integer": pa.int64(),
+    "boolean": pa.bool_(),
+    "null": pa.string() # Aunque los campos pueden ser nullables, "null" como tipo es específico
+}
+
+def convert_json_property_to_pyarrow_field(prop_name, prop_details):
+    """
+    Convierte una propiedad individual de JSON Schema a un campo de PyArrow.
+    Maneja tipos simples, objetos anidados (structs) y arrays (listas).
+    Todos los campos se crean inicialmente como no anulables aquí;
+    la función make_schema_nullable se encargará de la anulabilidad global después.
+    """
+    json_type_info = prop_details.get("type")
+
+    # Determinar el tipo JSON primario, manejando el caso donde "type" es una lista (ej. ["string", "null"])
+    if isinstance(json_type_info, list):
+        # Priorizar el primer tipo no nulo para la conversión de PyArrow.
+        # La anulabilidad general se maneja por make_schema_nullable.
+        json_type = next((t for t in json_type_info if t != "null"), None)
+        if json_type is None and "null" in json_type_info: # Si solo es "null" o ["null"]
+             pyarrow_type = pa.null()
+             return pa.field(prop_name, pyarrow_type, nullable=False) # Nullable se establecerá globalmente
+        elif not json_type: # Caso inesperado, ej. lista vacía o solo tipos no mapeados
+            print(f"Advertencia: El campo '{prop_name}' tiene una lista de tipos vacía o no reconocida: {json_type_info}. Usando string() por defecto.")
+            pyarrow_type = pa.string() # Fallback seguro
+            return pa.field(prop_name, pyarrow_type, nullable=False)
+    elif isinstance(json_type_info, str):
+        json_type = json_type_info
+    else: # Tipo no especificado o formato desconocido
+        print(f"Advertencia: El campo '{prop_name}' no tiene un 'type' string o lista de strings definido ({json_type_info}). Usando string() por defecto.")
+        pyarrow_type = pa.string()
+        return pa.field(prop_name, pyarrow_type, nullable=False)
+
+
+    if json_type == "object":
+        if "properties" in prop_details:
+            nested_fields = []
+            for nested_prop_name, nested_prop_details in prop_details["properties"].items():
+                nested_fields.append(convert_json_property_to_pyarrow_field(nested_prop_name, nested_prop_details))
+            pyarrow_type = pa.struct(nested_fields)
+        else:
+            print(f"Advertencia: El campo de objeto '{prop_name}' no tiene 'properties' definidas. Se creará como un struct vacío.")
+            pyarrow_type = pa.struct([])
+    elif json_type == "array":
+        if "items" in prop_details:
+            item_details = prop_details["items"]
+            if isinstance(item_details, dict):
+                value_field = convert_json_property_to_pyarrow_field("item", item_details) # El nombre "item" es un placeholder
+                pyarrow_type = pa.list_(value_field.type)
+            else:
+                print(f"Advertencia: 'items' para el array '{prop_name}' no es un objeto de esquema. Usando list<string> por defecto.")
+                pyarrow_type = pa.list_(pa.string())
+        else:
+            print(f"Advertencia: El campo de array '{prop_name}' no tiene 'items' definidos. Usando list<string> por defecto.")
+            pyarrow_type = pa.list_(pa.string())
+    else:
+        pyarrow_type = JSON_TO_PYARROW_TYPES.get(json_type, pa.string())
+
+    # Corrección: pa.null() debe ser nullable=True inmediatamente.
+    if pyarrow_type == pa.null():
+        return pa.field(prop_name, pyarrow_type, nullable=True)
+    else:
+        return pa.field(prop_name, pyarrow_type, nullable=False)
+
+
+def json_schema_to_pyarrow_schema(json_schema_content):
+    """
+    Convierte un JSON Schema (ya cargado como un diccionario Python) a un PyArrow Schema.
+    """
+    if not isinstance(json_schema_content, dict):
+        raise ValueError("El contenido del JSON Schema debe ser un diccionario.")
+
+    schema_type = json_schema_content.get("type")
+    fields = []
+
+    if schema_type == "object":
+        if "properties" not in json_schema_content:
+            raise ValueError("El JSON Schema de tipo 'object' no tiene una clave 'properties'.")
+        for prop_name, prop_details in json_schema_content["properties"].items():
+            fields.append(convert_json_property_to_pyarrow_field(prop_name, prop_details))
+
+    elif schema_type == "array":
+        if "items" not in json_schema_content or not isinstance(json_schema_content["items"], dict):
+            raise ValueError("El JSON Schema de tipo 'array' debe tener una clave 'items' que sea un objeto.")
+        item_schema = json_schema_content["items"]
+        if item_schema.get("type") != "object":
+            raise ValueError("Los 'items' de un JSON Schema de tipo 'array' deben ser de tipo 'object'.")
+        if "properties" not in item_schema:
+            raise ValueError("Los 'items' (objeto) del JSON Schema de tipo 'array' no tienen una clave 'properties'.")
+        for prop_name, prop_details in item_schema["properties"].items():
+            fields.append(convert_json_property_to_pyarrow_field(prop_name, prop_details))
+    else:
+        raise ValueError(f"El tipo de JSON Schema raíz no soportado: '{schema_type}'. Debe ser 'object' o 'array' (de objetos).")
+
+    return pa.schema(fields)
+
+
 def make_schema_nullable(schema):
     """
     Recursively sets all fields in a PyArrow schema to nullable=True.
-    This handles nested structs and lists.
     """
     new_fields = []
     for field in schema:
-        if pa.types.is_struct(field.type):
-            # If it's a struct, recursively process its nested schema
-            new_struct_type = pa.struct(make_schema_nullable(field.type))
-            new_fields.append(pa.field(field.name, new_struct_type, nullable=True))
-        elif pa.types.is_list(field.type):
-            # If it's a list, process its value type
-            # The list itself can be nullable, and its elements can be nullable
-            new_value_type = field.type.value_type
-            if pa.types.is_struct(new_value_type):
-                new_list_value_type = pa.struct(make_schema_nullable(new_value_type))
-            else:
-                new_list_value_type = new_value_type
+        current_type = field.type
+        
+        if pa.types.is_struct(current_type):
+            # current_type es pa.StructType. Iterar sobre él da sus campos hijos.
+            # make_schema_nullable(current_type) procesará estos campos hijos.
+            processed_type = pa.struct(make_schema_nullable(current_type))
+        elif pa.types.is_list(current_type):
+            # current_type es pa.ListType
+            original_value_field = current_type.value_field # Esto es un pa.Field
+
+            # Crear un esquema temporal solo con este original_value_field.
+            dummy_schema_for_value_field = pa.schema([original_value_field])
             
-            new_list_type = pa.list_(new_list_value_type)
-            new_fields.append(pa.field(field.name, new_list_type, nullable=True))
+            # Llamar recursivamente a make_schema_nullable en este esquema temporal.
+            nullable_schema_for_value_field = make_schema_nullable(dummy_schema_for_value_field)
+
+            # Extraer el campo (ahora completamente anulable) para los ítems de la lista
+            processed_value_field = nullable_schema_for_value_field.field(original_value_field.name)
+            
+            # Crear el nuevo tipo de lista usando el processed_value_field.
+            processed_type = pa.list_(processed_value_field)
         else:
-            # For all other types, just set nullable=True
-            new_fields.append(pa.field(field.name, field.type, nullable=True))
+            processed_type = current_type
+        
+        new_fields.append(pa.field(field.name, processed_type, nullable=True, metadata=field.metadata))
     
-    return pa.schema(new_fields)
+    return pa.schema(new_fields, metadata=schema.metadata if hasattr(schema, 'metadata') else None)
 
 
 def save_to_json(data, filename):
     """Saves the given data to a JSON file."""
     try:
         with open(filename, 'w') as f:
-            # For PyArrow schema, convert to string for serialization
             if isinstance(data, pa.Schema):
-                json.dump(str(data), f, indent=4)
+                schema_repr = []
+                for field in data:
+                    field_meta_repr = None
+                    if field.metadata:
+                        try:
+                            # Intentar decodificar metadatos si son bytes
+                            field_meta_repr = {k.decode(): v.decode() for k, v in field.metadata.items()}
+                        except Exception:
+                             # Si falla, convertir a string como fallback
+                            field_meta_repr = str(field.metadata)
+
+                    schema_repr.append({
+                        "name": field.name,
+                        "type": str(field.type),
+                        "nullable": field.nullable,
+                        "metadata": field_meta_repr
+                    })
+                
+                schema_metadata_repr = None
+                if data.metadata:
+                    try:
+                        schema_metadata_repr = {k.decode(): v.decode() for k, v in data.metadata.items()}
+                    except Exception:
+                        schema_metadata_repr = str(data.metadata)
+
+                json.dump({"fields": schema_repr, "metadata": schema_metadata_repr}, f, indent=4)
             else:
                 json.dump(data, f, indent=4)
         print(f"Successfully saved data to {filename}")
@@ -52,97 +183,137 @@ def save_to_json(data, filename):
         print(f"An unexpected error occurred while saving to {filename}: {e}")
 
 
-def json_to_parquet(json_file_path, parquet_file_path, batch_size=1000):
-    """
-    Converts a JSON file to Parquet format using bigjson for reading
-    and PyArrow for writing, processing in batches. Infers schema dynamically
-    and then makes all fields nullable.
+def clean_batch_for_pyarrow(batch, schema):
+    cleaned_batch = []
+    for record in batch:
+        cleaned_record = {}
+        for field in schema:
+            field_name = field.name
+            field_type = field.type
+            value = record.get(field_name)
 
-    Args:
-        json_file_path (str): The path to the input JSON file.
-        parquet_file_path (str): The path to save the output Parquet file.
-        batch_size (int): The number of records to process in each batch.
-    """
+            if value == "" and not pa.types.is_string(field_type) and field.nullable:
+                cleaned_record[field_name] = None
+            elif value == "" and pa.types.is_boolean(field_type) and field.nullable:
+                cleaned_record[field_name] = None
+            elif pa.types.is_integer(field_type) and isinstance(value, float) and value.is_integer():
+                 cleaned_record[field_name] = int(value)
+            elif pa.types.is_string(field_type) and isinstance(value, (int, float, bool)):
+                cleaned_record[field_name] = str(value)
+            # Manejo de nulos explícitos en JSON que deben ser None en Python para PyArrow
+            elif value is None and field.nullable:
+                cleaned_record[field_name] = None
+            # Si el campo no es anulable y el valor es None, puede causar problemas.
+            # Esta función asume que make_schema_nullable ya ha sido llamado.
+            else:
+                cleaned_record[field_name] = value
+        cleaned_batch.append(cleaned_record)
+    return cleaned_batch
+
+
+def json_to_parquet(json_file_path, parquet_file_path, schema_file_path, batch_size=1000):
     writer = None
-    inferred_and_nullable_schema = None # Este será el esquema modificado
-    current_batch = []
+    pyarrow_schema_final = None
     records_processed = 0
+    current_batch = []
 
     try:
-        with open(json_file_path, 'rb') as f: # bigjson expects a binary file handle
-            json_data = bigjson.load(f)
+        with open(schema_file_path, 'r') as sf:
+            json_schema_data = json.load(sf)
 
-            for item in json_data:
+        base_pyarrow_schema = json_schema_to_pyarrow_schema(json_schema_data)
+        pyarrow_schema_final = make_schema_nullable(base_pyarrow_schema)
+
+        save_to_json(pyarrow_schema_final, 'pyarrow_schema_from_json_schema.json')
+        print(f"PyArrow schema generated from {schema_file_path}, made nullable, and saved.")
+
+        with open(json_file_path, 'rb') as f:
+            json_data_iterable = bigjson.load(f)
+            writer = pq.ParquetWriter(parquet_file_path, pyarrow_schema_final)
+
+            for item in json_data_iterable:
                 current_batch.append(item.to_python())
-
                 if len(current_batch) >= batch_size:
-                    if writer is None:
-                        # Primer lote: inferir esquema y luego hacerlo nullable
-                        temp_table = pa.Table.from_pylist(current_batch)
-                        inferred_schema = temp_table.schema
-                        inferred_and_nullable_schema = make_schema_nullable(inferred_schema)
-                        save_to_json(inferred_and_nullable_schema, 'current_schema.json')
-                        writer = pq.ParquetWriter(parquet_file_path, inferred_and_nullable_schema)
-                        writer.write_table(pa.Table.from_pylist(current_batch, schema=inferred_and_nullable_schema))
-                    else:
-                        # Lotes subsiguientes: usar el esquema modificado
-                        table = pa.Table.from_pylist(current_batch, schema=inferred_and_nullable_schema)
-                        writer.write_table(table)
+                    cleaned_batch = clean_batch_for_pyarrow(current_batch, pyarrow_schema_final)
+                    try:
+                        table = pa.Table.from_pylist(cleaned_batch, schema=pyarrow_schema_final)
+                    except pa.lib.ArrowInvalid as e_arrow:
+                        print(f"\nArrowInvalid error processing batch. First erroring record details:")
+                        for i, record_in_batch in enumerate(cleaned_batch):
+                            try:
+                                pa.Table.from_pylist([record_in_batch], schema=pyarrow_schema_final)
+                            except pa.lib.ArrowInvalid as e_single_record:
+                                print(f"  Registro problemático encontrado en el índice {i} del lote actual:")
+                                print(f"  {json.dumps(record_in_batch, indent=2, ensure_ascii=False)}")
+                                print(f"  Error específico para este registro: {e_single_record}")
+                                print(f"  Intentando identificar el campo problemático dentro del registro...")
+                                for field_name_detail, field_value_detail in record_in_batch.items():
+                                    try:
+                                        if field_name_detail not in pyarrow_schema_final.names:
+                                            print(f"    Advertencia: El campo '{field_name_detail}' del registro no está en el esquema inferido. Omitiendo análisis detallado para este campo.")
+                                            continue
 
+                                        schema_field_detail = pyarrow_schema_final.field(field_name_detail)
+                                        single_field_schema_detail = pa.schema([schema_field_detail])
+                                        pa.Table.from_pylist([{field_name_detail: field_value_detail}], schema=single_field_schema_detail)
+                                    except pa.lib.ArrowInvalid as e_field_detail:
+                                        print(f"    --> Campo problemático: '{field_name_detail}'")
+                                        try:
+                                            field_value_str = json.dumps(field_value_detail, ensure_ascii=False)
+                                        except TypeError:
+                                            field_value_str = str(field_value_detail) # Fallback if not JSON serializable
+                                        print(f"        Valor: {field_value_str} (Tipo Python: {type(field_value_detail).__name__})")
+                                        print(f"        Definición de campo en esquema: {str(schema_field_detail)}")
+                                        print(f"        Error específico del campo: {e_field_detail}")
+                                        # No break here, to see all problematic fields in the record if there are multiple
+                                print(f"  Fin del análisis detallado de campos para el registro problemático.")
+                                break # Detener después de encontrar el primer registro problemático en el LOTE
+                        raise e_arrow # Re-raise original batch error
+
+                    writer.write_table(table)
                     records_processed += len(current_batch)
                     print(f"Processed {records_processed} records...")
                     current_batch = []
 
-            # Escribir cualquier registro restante en el último lote
             if current_batch:
-                if writer is None: # Maneja casos donde el total de registros < batch_size
-                    # Si no hay datos previamente procesados, inferir el esquema del lote actual
-                    # y luego hacerlo nullable.
-                    if not inferred_and_nullable_schema: # Si el esquema no se ha inferido aún (e.g., solo un lote pequeño)
-                        temp_table = pa.Table.from_pylist(current_batch)
-                        inferred_schema = temp_table.schema
-                        inferred_and_nullable_schema = make_schema_nullable(inferred_schema)
+                cleaned_batch = clean_batch_for_pyarrow(current_batch, pyarrow_schema_final)
+                try:
+                    table = pa.Table.from_pylist(cleaned_batch, schema=pyarrow_schema_final)
+                except pa.lib.ArrowInvalid as e_arrow:
+                    print(f"\nArrowInvalid error processing final batch. First erroring record details:")
+                    for i, record_in_batch in enumerate(cleaned_batch):
+                        try:
+                            pa.Table.from_pylist([record_in_batch], schema=pyarrow_schema_final)
+                        except pa.lib.ArrowInvalid as e_single:
+                            print(f"  Problematic record at index {i} in final batch: {json.dumps(record_in_batch, indent=2, ensure_ascii=False)}")
+                            print(f"  Error for this record: {e_single}")
+                            break
+                    raise e_arrow
 
-                    writer = pq.ParquetWriter(parquet_file_path, inferred_and_nullable_schema)
-                
-                table = pa.Table.from_pylist(current_batch, schema=inferred_and_nullable_schema)
                 writer.write_table(table)
                 records_processed += len(current_batch)
                 print(f"Processed final batch of {len(current_batch)} records.")
 
         if records_processed == 0:
-            print(f"Warning: No data was processed from '{json_file_path}'. An empty Parquet file with a nullable-friendly schema will be created if possible.")
-            # Si no hay registros y el writer nunca se inicializó, crear un archivo Parquet vacío
-            # con un esquema que PyArrow pueda inferir de una lista vacía, y luego hacerlo nullable.
-            # Esto puede ser un desafío si no hay datos para inferir *ningún* campo.
-            # Una alternativa aquí sería tener un esquema por defecto muy básico si no se infiere nada.
-            if writer is None:
-                # Intenta inferir un esquema de una lista vacía, que resultará en un esquema vacío.
-                # Luego, hazlo nullable (aunque no tendrá efecto si no hay campos).
-                # Para garantizar un archivo .parquet válido, a veces se necesita un esquema mínimo.
-                # Para un script verdaderamente general, esto es un punto delicado:
-                # si el JSON está vacío, ¿qué esquema debe tener el Parquet resultante?
-                # Por ahora, se creará un Parquet con un esquema vacío si la fuente está vacía.
-                inferred_and_nullable_schema = make_schema_nullable(pa.schema([])) # Esquema vacío, luego nullable
-                writer = pq.ParquetWriter(parquet_file_path, inferred_and_nullable_schema)
-                empty_table = pa.Table.from_pylist([], schema=inferred_and_nullable_schema)
-                writer.write_table(empty_table)
-                print("An empty Parquet file with a basic nullable schema was created.")
-
+            print(f"Warning: No data was processed from '{json_file_path}'. An empty Parquet file may be created if schema was valid.")
 
         print(f"Successfully converted '{json_file_path}' to '{parquet_file_path}'. Total records: {records_processed}")
 
-    except FileNotFoundError:
-        print(f"Error: JSON file not found at '{json_file_path}'")
+    except FileNotFoundError as fnf_error:
+        print(f"Error: File not found - {fnf_error}")
+    except json.JSONDecodeError as json_error:
+        print(f"Error decoding JSON file ('{schema_file_path}' or '{json_file_path}'): {json_error}")
+    except ValueError as val_error: # Captura errores de json_schema_to_pyarrow_schema
+        print(f"ValueError during schema conversion or processing: {val_error}")
     except Exception as e:
-        print(f"An error occurred: {e}, len(current_batch): {len(current_batch)}")
-        save_to_json(current_batch, "error_current_batch.json")
-        temp_table = pa.Table.from_pylist(current_batch)
-        current_schema = temp_table.schema
-        if current_schema:
-            save_to_json(current_schema, "error_current_schema.json")
+        print(f"An unexpected error occurred: {e}")
+        print(f"Length of current_batch at error: {len(current_batch)}")
+        if current_batch:
+            save_to_json(current_batch, "error_current_batch.json")
+        if pyarrow_schema_final:
+            save_to_json(pyarrow_schema_final, "error_current_schema.json")
         else:
-            print("inferred_and_nullable_schema is None, not saving to JSON.")
+            print("pyarrow_schema_final was not generated, not saving to JSON.")
         traceback.print_exc()
     finally:
         if writer:
@@ -150,11 +321,12 @@ def json_to_parquet(json_file_path, parquet_file_path, batch_size=1000):
             print("Parquet writer closed.")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Convert a JSON file to Parquet format using PyArrow.")
+    parser = argparse.ArgumentParser(description="Convert a JSON file to Parquet format using a provided JSON Schema.")
     parser.add_argument("json_file", help="Path to the input JSON file.")
     parser.add_argument("parquet_file", help="Path to save the output Parquet file.")
+    parser.add_argument("schema_file", help="Path to the JSON Schema file (e.g., shema.json).")
     parser.add_argument("--batch_size", type=int, default=1000, help="Number of records per batch (default: 1000).")
 
     args = parser.parse_args()
 
-    json_to_parquet(args.json_file, args.parquet_file, args.batch_size)
+    json_to_parquet(args.json_file, args.parquet_file, args.schema_file, args.batch_size)
