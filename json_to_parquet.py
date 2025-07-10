@@ -11,7 +11,7 @@ JSON_TO_PYARROW_TYPES = {
     "number": pa.float64(),
     "integer": pa.int64(),
     "boolean": pa.bool_(),
-    "null": pa.null() # Aunque los campos pueden ser nullables, "null" como tipo es específico
+    "null": pa.string() # Aunque los campos pueden ser nullables, "null" como tipo es específico
 }
 
 def convert_json_property_to_pyarrow_field(prop_name, prop_details):
@@ -249,11 +249,11 @@ def json_to_parquet(json_file_path, parquet_file_path, schema_file_path, batch_s
                                 print(f"  Intentando identificar el campo problemático dentro del registro...")
                                 for field_name_detail, field_value_detail in record_in_batch.items():
                                     try:
-                                        if field_name_detail not in inferred_and_nullable_schema.names:
+                                        if field_name_detail not in pyarrow_schema_final.names:
                                             print(f"    Advertencia: El campo '{field_name_detail}' del registro no está en el esquema inferido. Omitiendo análisis detallado para este campo.")
                                             continue
 
-                                        schema_field_detail = inferred_and_nullable_schema.field(field_name_detail)
+                                        schema_field_detail = pyarrow_schema_final.field(field_name_detail)
                                         single_field_schema_detail = pa.schema([schema_field_detail])
                                         pa.Table.from_pylist([{field_name_detail: field_value_detail}], schema=single_field_schema_detail)
                                     except pa.lib.ArrowInvalid as e_field_detail:
