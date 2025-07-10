@@ -12,26 +12,34 @@ def make_schema_nullable(schema):
     """
     new_fields = []
     for field in schema:
-        new_type = field.type
-        if pa.types.is_struct(field.type):
-            # Si es una estructura, procesar recursivamente su esquema anidado
-            new_type = pa.struct(make_schema_nullable(field.type))
-        elif pa.types.is_list(field.type):
-            # Si es una lista, procesar recursivamente su tipo de valor
-            # La lista en sí puede ser anulable, y sus elementos también pueden ser anulables
-            list_value_type = field.type.value_type
-            
-            # Crear un esquema dummy para el tipo de valor de la lista para aplicar make_schema_nullable
-            # Esto maneja tanto tipos primitivos como complejos dentro de las listas
-            dummy_schema_for_value = pa.schema([pa.field("value", list_value_type)])
-            nullable_value_schema = make_schema_nullable(dummy_schema_for_value)
-            new_list_value_type = nullable_value_schema.field("value").type
-            
-            new_type = pa.list_(new_list_value_type)
+        current_type = field.type
         
-        # Para todos los tipos (incluyendo primitivos y tipos anidados modificados),
-        # crear un nuevo campo con nullable=True
-        new_fields.append(pa.field(field.name, new_type, nullable=True))
+        if pa.types.is_struct(current_type):
+            # Si es una estructura, procesar recursivamente su esquema anidado
+            processed_type = pa.struct(make_schema_nullable(current_type))
+        elif pa.types.is_list(current_type):
+            # Si es una lista, procesar recursivamente su tipo de valor
+            list_value_type = current_type.value_type
+            
+            # Recursively make the list's value type nullable
+            # Esto maneja casos donde list_value_type podría ser una estructura u otra lista
+            # Para tipos primitivos, simplemente se devuelve el tipo con nullable=True
+            if pa.types.is_struct(list_value_type) or pa.types.is_list(list_value_type):
+                # Para tipos complejos, llamar recursivamente a make_schema_nullable en un esquema dummy
+                dummy_schema_for_value = pa.schema([pa.field("value", list_value_type)])
+                nullable_value_schema = make_schema_nullable(dummy_schema_for_value)
+                processed_list_value_type = nullable_value_schema.field("value").type
+            else:
+                # Para tipos primitivos, simplemente hacerlo anulable directamente
+                processed_list_value_type = list_value_type.with_nullable(True)
+            
+            processed_type = pa.list_(processed_list_value_type)
+        else:
+            # Para todos los demás tipos (primitivos), usar el tipo actual
+            processed_type = current_type
+        
+        # Crear un nuevo campo con el tipo potencialmente modificado y establecer explícitamente nullable=True
+        new_fields.append(pa.field(field.name, processed_type, nullable=True))
     
     return pa.schema(new_fields)
 
@@ -40,7 +48,7 @@ def save_to_json(data, filename):
     """Saves the given data to a JSON file."""
     try:
         with open(filename, 'w') as f:
-            # For PyArrow schema, convert to string for serialization
+            # Para el esquema de PyArrow, convertir a cadena para serialización
             if isinstance(data, pa.Schema):
                 
                 json.dump(str(data), f, indent=4)
@@ -53,6 +61,32 @@ def save_to_json(data, filename):
         print(f"Error serializing data to JSON for {filename}: {e}. Data type: {type(data)}")
     except Exception as e:
         print(f"An unexpected error occurred while saving to {filename}: {e}")
+
+
+def clean_batch_for_pyarrow(batch, schema):
+    """
+    Cleans a batch of records by converting empty strings to None
+    for fields that are not of string type, based on the provided PyArrow schema.
+    This helps prevent 'Invalid null value' errors.
+    """
+    cleaned_batch = []
+    for record in batch:
+        cleaned_record = {}
+        for field in schema:
+            field_name = field.name
+            field_type = field.type
+            value = record.get(field_name) # Usar .get() para manejar claves faltantes con gracia
+
+            # Si el valor es una cadena vacía y el tipo de campo NO es cadena,
+            # y el campo es anulable, convertirlo a None.
+            # Esto es una causa común de "Invalid null value" cuando PyArrow espera un tipo no-string
+            # pero obtiene una cadena vacía.
+            if value == "" and not pa.types.is_string(field_type) and field.nullable:
+                cleaned_record[field_name] = None
+            else:
+                cleaned_record[field_name] = value
+        cleaned_batch.append(cleaned_record)
+    return cleaned_batch
 
 
 def json_to_parquet(json_file_path, parquet_file_path, batch_size=1000):
@@ -87,8 +121,9 @@ def json_to_parquet(json_file_path, parquet_file_path, batch_size=1000):
                         save_to_json(inferred_and_nullable_schema, 'current_schema.json')
                         writer = pq.ParquetWriter(parquet_file_path, inferred_and_nullable_schema)
                     
-                    # Usar from_pylist para todos los lotes para un manejo de tipos más robusto
-                    table = pa.Table.from_pylist(current_batch, schema=inferred_and_nullable_schema)
+                    # Limpiar el lote actual antes de pasarlo a PyArrow
+                    cleaned_batch = clean_batch_for_pyarrow(current_batch, inferred_and_nullable_schema)
+                    table = pa.Table.from_pylist(cleaned_batch, schema=inferred_and_nullable_schema)
                     writer.write_table(table)
 
                     records_processed += len(current_batch)
@@ -107,23 +142,24 @@ def json_to_parquet(json_file_path, parquet_file_path, batch_size=1000):
 
                     writer = pq.ParquetWriter(parquet_file_path, inferred_and_nullable_schema)
                 
-                # Usar from_pylist para el lote final también
-                table = pa.Table.from_pylist(current_batch, schema=inferred_and_nullable_schema)
+                # Limpiar el lote final antes de pasarlo a PyArrow
+                cleaned_batch = clean_batch_for_pyarrow(current_batch, inferred_and_nullable_schema)
+                table = pa.Table.from_pylist(cleaned_batch, schema=inferred_and_nullable_schema)
                 writer.write_table(table)
                 records_processed += len(current_batch)
                 print(f"Processed final batch of {len(current_batch)} records.")
 
         if records_processed == 0:
             print(f"Warning: No data was processed from '{json_file_path}'. An empty Parquet file with a nullable-friendly schema will be created if possible.")
-            # If no records, still attempt to create an empty parquet file with the inferred schema
+            # Si no hay registros, intentar crear un archivo parquet vacío con el esquema inferido
             if inferred_and_nullable_schema and writer is None:
                 writer = pq.ParquetWriter(parquet_file_path, inferred_and_nullable_schema)
-            # If writer is still None (e.g., no schema could be inferred from empty data), handle it
+            # Si el escritor sigue siendo None (ej., no se pudo inferir el esquema de datos vacíos), manejarlo
             elif writer is None:
-                print("Error: Could not create an empty Parquet file as no schema could be inferred from empty data.")
-                return # Exit if no schema and no writer
+                print("Error: No se pudo crear un archivo Parquet vacío ya que no se pudo inferir ningún esquema de datos vacíos.")
+                return # Salir si no hay esquema y no hay escritor
             
-            # Ensure writer is closed even if no data was written
+            # Asegurarse de que el escritor esté cerrado incluso si no se escribieron datos
             if writer:
                 writer.close()
                 print("Parquet writer closed.")
@@ -137,7 +173,7 @@ def json_to_parquet(json_file_path, parquet_file_path, batch_size=1000):
     except Exception as e:
         print(f"An error occurred: {e}, len(current_batch): {len(current_batch)}")
         save_to_json(current_batch, "error_current_batch.json")
-        # Ensure inferred_and_nullable_schema is not None before trying to save it
+        # Asegurarse de que inferred_and_nullable_schema no sea None antes de intentar guardarlo
         if inferred_and_nullable_schema:
             save_to_json(inferred_and_nullable_schema, "error_current_schema.json")
         else:
