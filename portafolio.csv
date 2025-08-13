@@ -1,0 +1,12 @@
+Símbolo de Ticker,Nombre de la Empresa,Tipo de Activo,Cantidad de Acciones,Precio de Compra Promedio,Precio Actual de Mercado,Ganancia/Pérdida No Realizada,Porcentaje de Cartera,Fecha de Compra
+MSFT,Microsoft Corp.,Acciones,150,250,280.5,4575,18.25,15/1/2023
+AAPL,Apple Inc.,Acciones,100,160,175.25,1525,12.5,20/3/2023
+GOOGL,Alphabet Inc.,Acciones,50,120,135.8,790,9.75,10/2/2023
+TSLA,Tesla Inc.,Acciones,75,220,210.1,-742.5,7.8,1/4/2023
+AMZN,Amazon.com Inc.,Acciones,80,105,112.3,584,8.9,5/5/2023
+NVDA,NVIDIA Corp.,Acciones,60,300,325.5,1530,10.1,12/6/2023
+JPM,JPMorgan Chase & Co.,Acciones,200,140,145.75,1150,15,1/7/2023
+GLD,SPDR Gold Shares,ETF,10,180,178.5,-15,5,10/8/2023
+BND,Vanguard Total Bond,ETF,25,75,74.8,-5,3,1/9/2023
+ETH,Ethereum,Criptomoneda,0.5,1800,1950,75,2.5,15/10/2023
+BTC,Bitcoin,Criptomoneda,0.1,28000,29500,150,4,20/11/2023

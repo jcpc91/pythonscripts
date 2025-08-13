@@ -7,31 +7,33 @@ csv_file = "portafolio.csv"  # Ruta al CSV
 # ==== LECTURA DEL CSV ====
 df = pd.read_csv(csv_file)
 
+
 # Validar columnas
 required_cols = [
-    "Ticker", "Nombre de la Empresa", "Tipo de Activo",
-    "Cantidad de Acciones", "Precio de compra promedio",
-    "Precio Actual de Mercado", "Ganancia/Perdida",
-    "Porcentaje de cartera", "Fecha de compra"
+    "Símbolo de Ticker", "Nombre de la Empresa", "Tipo de Activo",
+    "Cantidad de Acciones", "Precio de Compra Promedio",
+    "Precio Actual de Mercado", "Ganancia/Pérdida No Realizada",
+    "Porcentaje de Cartera", "Fecha de Compra"
 ]
 for col in required_cols:
     if col not in df.columns:
         raise ValueError(f"Falta la columna requerida: {col}")
 
+df["Porcentaje de Cartera"] = df["Porcentaje de Cartera"].astype(str).str.replace("%", "", regex=False).astype(float)
 # ==== CÁLCULOS ====
-total_ganancia = df["Ganancia/Perdida"].sum()
-total_invertido = (df["Cantidad de Acciones"] * df["Precio de compra promedio"]).sum()
+total_ganancia = df["Ganancia/Pérdida No Realizada"].sum()
+total_invertido = (df["Cantidad de Acciones"] * df["Precio de Compra Promedio"]).sum()
 total_valor_actual = (df["Cantidad de Acciones"] * df["Precio Actual de Mercado"]).sum()
 total_rendimiento_pct = ((total_valor_actual - total_invertido) / total_invertido) * 100
 
-df["Rendimiento %"] = ((df["Precio Actual de Mercado"] - df["Precio de compra promedio"]) / df["Precio de compra promedio"]) * 100
+df["Rendimiento %"] = ((df["Precio Actual de Mercado"] - df["Precio de Compra Promedio"]) / df["Precio de Compra Promedio"]) * 100
 mejor_activo = df.loc[df["Rendimiento %"].idxmax()]
 peor_activo = df.loc[df["Rendimiento %"].idxmin()]
 
-activos_concentrados = df[df["Porcentaje de cartera"] > 20]
+activos_concentrados = df[df["Porcentaje de Cartera"] > 20]
 
-df["Fecha de compra"] = pd.to_datetime(df["Fecha de compra"], errors='coerce')
-df["Días en cartera"] = (datetime.today() - df["Fecha de compra"]).dt.days
+df["Fecha de Compra"] = pd.to_datetime(df["Fecha de Compra"], errors='coerce')
+df["Días en cartera"] = (datetime.today() - df["Fecha de Compra"]).dt.days
 
 # ==== ANÁLISIS GENERAL ====
 print("📊 RESUMEN GENERAL DEL PORTAFOLIO")
@@ -40,19 +42,19 @@ print(f"Valor actual de mercado: ${total_valor_actual:,.2f}")
 print(f"Ganancia/Pérdida total: ${total_ganancia:,.2f} ({total_rendimiento_pct:.2f}%)\n")
 
 print("🏆 ACTIVO CON MEJOR RENDIMIENTO:")
-print(f"{mejor_activo['Ticker']} - {mejor_activo['Nombre de la Empresa']} | {mejor_activo['Rendimiento %']:.2f}%\n")
+print(f"{mejor_activo['Símbolo de Ticker']} - {mejor_activo['Nombre de la Empresa']} | {mejor_activo['Rendimiento %']:.2f}%\n")
 
 print("⚠️ ACTIVO CON PEOR RENDIMIENTO:")
-print(f"{peor_activo['Ticker']} - {peor_activo['Nombre de la Empresa']} | {peor_activo['Rendimiento %']:.2f}%\n")
+print(f"{peor_activo['Símbolo de Ticker']} - {peor_activo['Nombre de la Empresa']} | {peor_activo['Rendimiento %']:.2f}%\n")
 
 print("📌 ACTIVOS CON ALTA CONCENTRACIÓN (>20% de cartera):")
 if not activos_concentrados.empty:
-    print(activos_concentrados[["Ticker", "Nombre de la Empresa", "Porcentaje de cartera"]])
+    print(activos_concentrados[["Símbolo de Ticker", "Nombre de la Empresa", "Porcentaje de Cartera"]])
 else:
     print("Ninguno\n")
 
 print("⏳ TIEMPO EN CARTERA (días por activo):")
-print(df[["Ticker", "Nombre de la Empresa", "Días en cartera"]])
+print(df[["Símbolo de Ticker", "Nombre de la Empresa", "Días en cartera"]])
 
 # ==== PREGUNTAS INTERACTIVAS ====
 print("\n❓ Responde para ajustar recomendaciones:")
@@ -69,13 +71,13 @@ print("\n💡 RECOMENDACIONES PERSONALIZADAS:")
 perdidas_fuertes = df[df["Rendimiento %"] < -20]
 if not perdidas_fuertes.empty and riesgo != "alta":
     for _, row in perdidas_fuertes.iterrows():
-        print(f"- Considerar venta o reevaluación de {row['Ticker']} ({row['Rendimiento %']:.2f}%) por pérdida significativa.")
+        print(f"- Considerar venta o reevaluación de {row['Símbolo de Ticker']} ({row['Rendimiento %']:.2f}%) por pérdida significativa.")
 
 # Toma de ganancias si rendimiento alto y horizonte corto
 ganancias_altas = df[df["Rendimiento %"] > 30]
 if not ganancias_altas.empty and horizonte == "corto":
     for _, row in ganancias_altas.iterrows():
-        print(f"- {row['Ticker']} tiene +{row['Rendimiento %']:.2f}%. Podría tomarse ganancia dado tu horizonte corto.")
+        print(f"- {row['Símbolo de Ticker']} tiene +{row['Rendimiento %']:.2f}%. Podría tomarse ganancia dado tu horizonte corto.")
 
 # Diversificación si concentración alta
 if not activos_concentrados.empty:
